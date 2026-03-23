@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtualenv
+venv/
+env/
+.venv/
+
+# Django
+*.sqlite3
+/staticfiles/
+/media/
+local_settings.py
+
+# Environment & Secrets
+.env
+.env.local
+*.json  # Sensitive token files
+calendar_token.json
+
+# Logs
+logs/*.log
+logs/*.json
+
+# ChromaDB (generated, do not commit)
+chroma_db/
+
+# Excel orders (runtime data)
+orders.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Ruff cache
+.ruff_cache/

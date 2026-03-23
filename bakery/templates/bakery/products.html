@@ -1,0 +1,187 @@
+{% extends "bakery/base.html" %}
+{% block title %}Our Products — Tastyz Bakery{% endblock %}
+
+{% block content %}
+<style>
+  .product-card {
+    border-radius: 12px;
+    border: 1px solid #e0d5c7;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+  }
+  .product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 20px rgba(92, 51, 23, 0.15);
+  }
+  .product-image-container {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #fff8f1, #fde8d0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .product-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--peach);
+    color: var(--brown);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .price-display {
+    color: var(--brown);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  .size-text {
+    color: #999;
+    font-size: 0.85rem;
+  }
+</style>
+
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <h1 class="section-heading">Our Full Menu</h1>
+    <p class="section-sub">All prices in Ugandan Shillings (UGX)</p>
+  </div>
+
+  <!-- ── Cakes ── -->
+  {% if cakes %}
+  <h2 class="mb-3" style="color:var(--brown);"><span style="font-size:1.5rem;">🎂</span> Cakes</h2>
+  <p class="text-muted mb-4">Available in 1KG and 2KG. Custom sizes on request.</p>
+  <div class="row g-4 mb-5">
+    {% for product in cakes %}
+    <div class="col-lg-4 col-md-6 col-sm-12">
+      <div class="card product-card h-100">
+        <div class="product-image-container position-relative">
+          {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+          {% else %}
+            <div style="font-size: 4rem; text-align: center; width: 100%;">🎂</div>
+          {% endif %}
+          <span class="product-badge">Cake</span>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-2" style="color:var(--brown); font-weight: 600;">{{ product.name }}</h5>
+          <p class="card-text text-muted small mb-3 flex-grow-1">{{ product.description }}</p>
+          <div class="mb-3">
+            <small class="size-text">📏 Sizes:</small><br/>
+            <small class="size-text">1KG / 2KG</small>
+          </div>
+          <div class="d-flex justify-content-between align-items-end">
+            <div>
+              <small class="size-text">Price</small><br/>
+              <span class="price-display">{{ product.price_display }}</span>
+            </div>
+            <a href="{% url 'place_order' %}" class="btn btn-bakery btn-sm">
+              <i class="bi bi-bag-heart"></i> Order
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Cookies ── -->
+  {% if cookies %}
+  <h2 class="mb-3" style="color:var(--brown);"><span style="font-size:1.5rem;">🍪</span> Cookies</h2>
+  <p class="text-muted mb-4">Available in Small, Medium and Big tins. Perfect for gifting!</p>
+  <div class="row g-4 mb-5">
+    {% for product in cookies %}
+    <div class="col-lg-4 col-md-6 col-sm-12">
+      <div class="card product-card h-100">
+        <div class="product-image-container position-relative">
+          {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+          {% else %}
+            <div style="font-size: 4rem; text-align: center; width: 100%;">🍪</div>
+          {% endif %}
+          <span class="product-badge">Cookies</span>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-2" style="color:var(--brown); font-weight: 600;">{{ product.name }}</h5>
+          <p class="card-text text-muted small mb-3 flex-grow-1">{{ product.description }}</p>
+          <div class="mb-3">
+            <small class="size-text">📏 Sizes:</small><br/>
+            <small class="size-text">Small / Medium / Big Tin</small>
+          </div>
+          <div class="d-flex justify-content-between align-items-end">
+            <div>
+              <small class="size-text">Price</small><br/>
+              <span class="price-display">{{ product.price_display }}</span>
+            </div>
+            <a href="{% url 'place_order' %}" class="btn btn-bakery btn-sm">
+              <i class="bi bi-bag-heart"></i> Order
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Fresh Pastries ── -->
+  {% if pastries %}
+  <h2 class="mb-3" style="color:var(--brown);"><span style="font-size:1.5rem;">🥐</span> Fresh Pastries</h2>
+  <p class="text-muted mb-4">Baked fresh every morning. Available in Small and Big.</p>
+  <div class="row g-4 mb-5">
+    {% for product in pastries %}
+    <div class="col-lg-4 col-md-6 col-sm-12">
+      <div class="card product-card h-100">
+        <div class="product-image-container position-relative">
+          {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+          {% else %}
+            <div style="font-size: 4rem; text-align: center; width: 100%;">🥐</div>
+          {% endif %}
+          <span class="product-badge">Pastry</span>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title mb-2" style="color:var(--brown); font-weight: 600;">{{ product.name }}</h5>
+          <p class="card-text text-muted small mb-3 flex-grow-1">{{ product.description }}</p>
+          <div class="mb-3">
+            <small class="size-text">📏 Sizes:</small><br/>
+            <small class="size-text">Small / Big</small>
+          </div>
+          <div class="d-flex justify-content-between align-items-end">
+            <div>
+              <small class="size-text">Price</small><br/>
+              <span class="price-display">{{ product.price_display }}</span>
+            </div>
+            <a href="{% url 'place_order' %}" class="btn btn-bakery btn-sm">
+              <i class="bi bi-bag-heart"></i> Order
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── CTA ── -->
+  <div class="text-center mt-3 p-5 rounded-4" style="background:linear-gradient(135deg,#fff8f1,#fde8d0);">
+    <h4 style="color:var(--brown);">Can't decide? Let our AI help!</h4>
+    <p class="text-muted mb-3">Tell us what you need and Tastyz AI will suggest the perfect product.</p>
+    <a href="{% url 'recommend' %}" class="btn btn-bakery me-3">
+      <i class="bi bi-stars me-1"></i>Get Recommendations
+    </a>
+    <a href="{% url 'place_order' %}" class="btn btn-outline-bakery">
+      <i class="bi bi-bag-heart me-1"></i>Place Order
+    </a>
+  </div>
+</div>
+{% endblock %}

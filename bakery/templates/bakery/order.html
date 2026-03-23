@@ -1,0 +1,357 @@
+{% extends "bakery/base.html" %}
+{% block title %}Place an Order — Tastyz Bakery{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <div class="text-center mb-4">
+        <div style="font-size:3rem;">🛒</div>
+        <h1 class="section-heading">Place Your Order</h1>
+        <p class="text-muted">Custom orders need at least 24–72 hours notice.</p>
+      </div>
+
+      <div class="card p-4 p-md-5">
+        <form method="post" action="/order/" novalidate id="order-form">
+          {% csrf_token %}
+
+          <h6 class="fw-bold mb-3" style="color:var(--brown);">Your Details</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Full Name *</label>
+              {{ form.customer_name }}
+              {% if form.customer_name.errors %}
+                <div class="text-danger small">{{ form.customer_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone Number *</label>
+              {{ form.customer_phone }}
+              {% if form.customer_phone.errors %}
+                <div class="text-danger small">{{ form.customer_phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Email <span class="text-muted">(optional)</span></label>
+              {{ form.customer_email }}
+            </div>
+          </div>
+
+          <hr class="my-3"/>
+          <h6 class="fw-bold mb-3" style="color:var(--brown);">Your Order</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Product *</label>
+              <select name="product" id="id_product" class="form-control" required>
+                <option value="">— Select product —</option>
+                {% for product in form.product.field.queryset %}
+                  <option value="{{ product.id }}" data-price-small="{{ product.price_small }}" data-price-large="{{ product.price_large|default:'' }}">{{ product.name }} ({{ product.price_display }})</option>
+                {% endfor %}
+              </select>
+              {% if form.product.errors %}
+                <div class="text-danger small">{{ form.product.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Size</label>
+              {{ form.size }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Quantity</label>
+              {{ form.quantity }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Cake Message / Special Instructions</label>
+              {{ form.notes }}
+            </div>
+          </div>
+
+          <hr class="my-3"/>
+          <h6 class="fw-bold mb-3" style="color:var(--brown);">Delivery</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Delivery Date *</label>
+              {{ form.delivery_date }}
+              {% if form.delivery_date.errors %}
+                <div class="text-danger small">{{ form.delivery_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Payment Method</label>
+              {{ form.payment_method }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Delivery Address <span class="text-muted">(leave blank for pickup)</span></label>
+              {{ form.delivery_address }}
+            </div>
+          </div>
+
+          <div class="alert alert-warning small p-2 mb-4" role="alert">
+            <i class="bi bi-info-circle me-1"></i>
+            Custom cakes require <strong>24–72 hours</strong> advance notice. Our team will call you to confirm.
+          </div>
+
+          <button type="button" class="btn btn-bakery btn-lg w-100" id="submit-order-btn">
+            <i class="bi bi-bag-check me-2"></i>Submit Order
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Payment Modal ═══════════ -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;overflow:hidden">
+      <div class="modal-header" style="background:var(--cream);border-bottom:2px solid var(--brown)">
+        <h5 class="modal-title" id="paymentModalLabel" style="color:var(--brown)">
+          <i class="bi bi-credit-card me-2"></i>Complete Payment
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+
+        <!-- Payment Amount Display -->
+        <div class="alert alert-info mb-3" style="background:var(--cream);border-left:4px solid var(--brown)">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold" style="color:var(--brown)">Total Amount Payable:</span>
+            <span class="h5 mb-0" style="color:#e67e22" id="modal-amount">0 UGX</span>
+          </div>
+        </div>
+
+        <!-- Mobile Money Fields -->
+        <div id="mm-fields">
+          <div class="text-center mb-3">
+            <span style="font-size:2.5rem">📱</span>
+            <h6 class="mt-2" style="color:var(--brown)">Mobile Money Payment</h6>
+            <p class="text-muted small">Enter your phone number to receive a payment prompt</p>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Mobile Money Number *</label>
+            <input type="tel" class="form-control form-control-lg" id="mm-phone"
+                   placeholder="0772 XXX XXX or 0750 XXX XXX" maxlength="15">
+            <div class="form-text">MTN MoMo or Airtel Money accepted</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Name on Account</label>
+            <input type="text" class="form-control" id="mm-name" placeholder="As registered on MoMo">
+          </div>
+        </div>
+
+        <!-- Bank Transfer Fields -->
+        <div id="bank-fields" style="display:none">
+          <div class="text-center mb-3">
+            <span style="font-size:2.5rem">🏦</span>
+            <h6 class="mt-2" style="color:var(--brown)">Bank Transfer Payment</h6>
+            <p class="text-muted small">Transfer to our bank account below</p>
+          </div>
+          <div class="card p-3 mb-3" style="background:var(--cream);border-left:4px solid var(--brown)">
+            <table class="table table-sm table-borderless mb-0">
+              <tr><th class="text-muted">Bank</th><td>Stanbic Bank Uganda</td></tr>
+              <tr><th class="text-muted">Account Name</th><td>Tastyz Bakery Ltd</td></tr>
+              <tr><th class="text-muted">Account No.</th><td>9030005678901</td></tr>
+              <tr><th class="text-muted">Branch</th><td>Kampala Main</td></tr>
+            </table>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Your Bank Name *</label>
+            <input type="text" class="form-control" id="bank-name" placeholder="e.g. Stanbic, Centenary">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Transaction Reference *</label>
+            <input type="text" class="form-control" id="bank-ref" placeholder="Paste the transaction reference">
+          </div>
+        </div>
+
+        <div class="alert alert-info small p-2 mb-0" id="payment-note">
+          <i class="bi bi-shield-check me-1"></i>
+          Your payment details are secure. We'll confirm your order once payment is verified.
+        </div>
+      </div>
+      <div class="modal-footer" style="background:var(--cream)">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="modal-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-bakery" id="confirm-payment-btn">
+          <i class="bi bi-check-circle me-1"></i>Confirm & Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const form = document.getElementById('order-form');
+  const submitBtn = document.getElementById('submit-order-btn');
+  const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+  const mmFields = document.getElementById('mm-fields');
+  const bankFields = document.getElementById('bank-fields');
+  const confirmBtn = document.getElementById('confirm-payment-btn');
+  const paymentSelect = document.getElementById('id_payment_method');
+  const modalAmount = document.getElementById('modal-amount');
+
+  // Get product prices from data attributes
+  const productSelect = document.getElementById('id_product');
+  const quantitySelect = document.getElementById('id_quantity');
+
+  function calculateAndDisplayAmount() {
+    const productOption = productSelect.options[productSelect.selectedIndex];
+    const priceSmall = parseFloat(productOption.dataset.priceSmall || 0);
+    const priceLarge = parseFloat(productOption.dataset.priceLarge || 0);
+    const sizeValue = document.getElementById('id_size').value.toLowerCase();
+    const quantity = parseInt(quantitySelect.value || 1);
+    
+    // Determine which price to use based on size
+    let basePrice = priceSmall;
+    if ((sizeValue.includes('2kg') || sizeValue.includes('large') || sizeValue.includes('big tin') || sizeValue.includes('medium')) && priceLarge > 0) {
+      basePrice = priceLarge;
+    }
+    
+    if (basePrice > 0 && quantity > 0) {
+      const subtotal = basePrice * quantity;
+      const tax = Math.round(subtotal * 0.05);
+      const total = subtotal + tax;
+      modalAmount.textContent = total.toLocaleString() + ' UGX';
+    }
+  }
+
+  // Update amount when product or quantity changes
+  productSelect.addEventListener('change', calculateAndDisplayAmount);
+  quantitySelect.addEventListener('change', calculateAndDisplayAmount);
+  document.getElementById('id_size').addEventListener('change', calculateAndDisplayAmount);
+
+  // Calculate on modal show
+  document.getElementById('paymentModal').addEventListener('show.bs.modal', function() {
+    calculateAndDisplayAmount();
+  });
+
+  // Show modal when payment method is selected from dropdown
+  paymentSelect.addEventListener('change', function() {
+    // First check form validity for other fields
+    if (!form.reportValidity()) {
+      // Reset payment method if form is invalid
+      paymentSelect.value = '';
+      return;
+    }
+
+    const method = this.value;
+    console.log('[Order Form] Payment method selected:', method);
+    
+    if (method === 'mobile_money') {
+      mmFields.style.display = 'block';
+      bankFields.style.display = 'none';
+      const orderPhone = document.querySelector('[name=customer_phone]').value;
+      if (orderPhone && !document.getElementById('mm-phone').value) {
+        document.getElementById('mm-phone').value = orderPhone;
+      }
+      const orderName = document.querySelector('[name=customer_name]').value;
+      if (orderName && !document.getElementById('mm-name').value) {
+        document.getElementById('mm-name').value = orderName;
+      }
+      paymentModal.show();
+      console.log('[Order Form] Mobile Money modal shown');
+    } else if (method === 'bank_transfer') {
+      bankFields.style.display = 'block';
+      mmFields.style.display = 'none';
+      paymentModal.show();
+      console.log('[Order Form] Bank Transfer modal shown');
+    }
+  });
+
+  // Handle confirm button click - validates modal fields and submits form
+  confirmBtn.addEventListener('click', function() {
+    console.log('[Order Form] Confirm button clicked');
+    const method = paymentSelect.value;
+    
+    // Validate payment-specific fields
+    if (method === 'mobile_money') {
+      const phone = document.getElementById('mm-phone').value.trim();
+      if (!phone) {
+        document.getElementById('mm-phone').classList.add('is-invalid');
+        console.log('[Order Form] Mobile Money validation failed: no phone');
+        return;
+      }
+      document.getElementById('mm-phone').classList.remove('is-invalid');
+      console.log('[Order Form] Mobile Money validation passed');
+    } else if (method === 'bank_transfer') {
+      const ref = document.getElementById('bank-ref').value.trim();
+      const bankName = document.getElementById('bank-name').value.trim();
+      if (!ref || !bankName) {
+        if (!bankName) document.getElementById('bank-name').classList.add('is-invalid');
+        if (!ref) document.getElementById('bank-ref').classList.add('is-invalid');
+        console.log('[Order Form] Bank Transfer validation failed');
+        return;
+      }
+      document.getElementById('bank-name').classList.remove('is-invalid');
+      document.getElementById('bank-ref').classList.remove('is-invalid');
+      console.log('[Order Form] Bank Transfer validation passed');
+    }
+    
+    // Move focus away from modal before hiding it
+    submitBtn.focus();
+    console.log('[Order Form] Focus moved to submit button');
+    
+    // Hide modal
+    console.log('[Order Form] Hiding modal...');
+    paymentModal.hide();
+    
+    // Remove aria-hidden from modal to prevent ARIA violations (fix for focus issues)
+    const modalElement = document.getElementById('paymentModal');
+    setTimeout(() => {
+      modalElement.removeAttribute('aria-hidden');
+      console.log('[Order Form] Removed aria-hidden from modal');
+    }, 10);
+    
+    // Show spinner on submit button and disable it
+    console.log('[Order Form] Showing spinner...');
+    submitBtn.disabled = true;
+    const spinnerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+    submitBtn.innerHTML = spinnerHTML;
+    
+    // Submit form directly - browser will follow the redirect naturally
+    console.log('[Order Form] Submitting form...');
+    setTimeout(() => {
+      console.log('[Order Form] Calling form.submit()...');
+      form.submit();
+    }, 50);
+  });
+
+  // Handle submit button click
+  submitBtn.addEventListener('click', function(e) {
+    console.log('[Order Form] Submit button clicked');
+    const method = paymentSelect.value;
+    console.log('[Order Form] Payment method:', method);
+    
+    // If cash payment, submit normally
+    if (method === 'cash') {
+      console.log('[Order Form] Cash payment - submitting directly');
+      if (!form.reportValidity()) {
+        console.log('[Order Form] Form validation failed');
+        return;
+      }
+      submitBtn.disabled = true;
+      const spinnerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+      submitBtn.innerHTML = spinnerHTML;
+      form.submit();
+    } else if (method === 'mobile_money' || method === 'bank_transfer') {
+      console.log('[Order Form] Payment method selected - showing modal');
+      e.preventDefault();
+      e.stopPropagation();
+      paymentModal.show();
+    } else {
+      console.log('[Order Form] No payment method selected');
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      alert('Please select a payment method');
+    }
+  });
+
+  // Log that script is loaded
+  console.log('[Order Form] JavaScript initialized successfully');
+})();
+</script>
+{% endblock %}

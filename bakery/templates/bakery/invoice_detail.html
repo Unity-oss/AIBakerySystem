@@ -1,0 +1,123 @@
+{% extends "bakery/base.html" %}
+{% block title %}Invoice {{ invoice.invoice_number }} — Tastyz Bakery{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    /* Hide navbar, footer, and action buttons when printing */
+    nav, footer, .no-print {
+      display: none !important;
+    }
+    body {
+      background: #fff !important;
+    }
+    .card {
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card p-4" style="border-radius:16px" id="invoice-content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+          <div>
+            <h2 class="section-heading" style="font-size:1.4rem;">🍰 Tastyz Bakery</h2>
+            <small class="text-muted">Kampala, Uganda · +256 776 318 065</small>
+          </div>
+          <div class="text-end">
+            <h3 style="color:var(--brown);font-size:1.2rem;">INVOICE</h3>
+            <strong>{{ invoice.invoice_number }}</strong><br>
+            <small class="text-muted">{{ invoice.created_at|date:"F d, Y" }}</small>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Customer -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <strong>Bill To:</strong><br>
+            {{ invoice.order.customer_name }}<br>
+            {{ invoice.order.customer_phone }}<br>
+            {% if invoice.order.customer_email %}{{ invoice.order.customer_email }}<br>{% endif %}
+            {% if invoice.order.delivery_address %}{{ invoice.order.delivery_address }}{% endif %}
+          </div>
+          <div class="col-md-6 text-md-end">
+            <strong>Order #{{ invoice.order.pk }}</strong><br>
+            Delivery: {{ invoice.order.delivery_date|date:"F d, Y" }}<br>
+            Payment: {{ invoice.order.get_payment_method_display }}<br>
+            Status: <span class="badge {% if invoice.status == 'paid' %}bg-success{% elif invoice.status == 'draft' %}bg-secondary{% else %}bg-primary{% endif %}">{{ invoice.get_status_display }}</span>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <table class="table">
+          <thead style="background:var(--cream)">
+            <tr><th>Item</th><th>Size</th><th>Qty</th><th class="text-end">Unit Price</th><th class="text-end">Amount</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ invoice.order.product_name_snapshot }}</td>
+              <td>{{ invoice.order.size }}</td>
+              <td>{{ invoice.order.quantity }}</td>
+              <td class="text-end">
+                {% if invoice.order.product %}
+                  {{ invoice.order.product.price_display }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td class="text-end">{{ invoice.amount|floatformat:0 }} UGX</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="row">
+          <div class="col-md-6">
+            {% if invoice.order.notes %}
+            <small class="text-muted"><strong>Notes:</strong> {{ invoice.order.notes }}</small>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tr>
+                <td class="text-end">Subtotal:</td>
+                <td class="text-end"><strong>{{ invoice.amount|floatformat:0 }} UGX</strong></td>
+              </tr>
+              <tr>
+                <td class="text-end">VAT (5%):</td>
+                <td class="text-end">{{ invoice.tax_amount|floatformat:0 }} UGX</td>
+              </tr>
+              <tr style="border-top:2px solid var(--brown)">
+                <td class="text-end"><strong>Total:</strong></td>
+                <td class="text-end"><strong style="font-size:1.2rem;color:var(--brown)">{{ invoice.total_amount|floatformat:0 }} UGX</strong></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <hr>
+        <div class="text-center">
+          <small class="text-muted">Thank you for choosing Tastyz Bakery! 🎂</small>
+        </div>
+      </div>
+
+      <div class="text-center mt-3 no-print">
+        <button class="btn btn-bakery" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Print Invoice
+        </button>
+        <a href="{% url 'settings_page' %}" class="btn btn-outline-bakery ms-2">
+          <i class="bi bi-arrow-left me-1"></i>Back to Settings
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

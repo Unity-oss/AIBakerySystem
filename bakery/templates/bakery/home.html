@@ -1,0 +1,170 @@
+{% extends "bakery/base.html" %}
+{% block title %}Tastyz Bakery — Freshly Baked with Love{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ── -->
+<section class="hero-gradient py-5">
+  <div class="container py-4">
+    <div class="row align-items-center">
+      <div class="col-lg-6 mb-4 mb-lg-0">
+        <p class="text-uppercase mb-2" style="color:var(--peach);letter-spacing:2px;font-size:.85rem;font-weight:600;">Welcome to Tastyz Bakery</p>
+        <h1 class="display-4 fw-bold mb-3" style="font-family:'Playfair Display',serif;">
+          Freshly Baked<br/>with <span style="color:var(--peach);">Love ❤️</span>
+        </h1>
+        <p class="lead mb-4" style="color:rgba(255,255,255,.85);">
+          Custom cakes, artisan breads, pastries and cookies — handcrafted every day in Kampala.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="{% url 'place_order' %}" class="btn btn-bakery btn-lg" style="background:var(--peach);color:var(--brown);">
+            <i class="bi bi-bag-heart me-2"></i>Order Now
+          </a>
+          <a href="{% url 'products' %}" class="btn btn-outline-bakery btn-lg" style="border-color:#fff;color:#fff;">
+            Browse Menu
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <div style="display: flex; align-items: center; justify-content: center; height: 280px; width: 280px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+          <img src="/media/hero_images/HeroCake-1(1).jpg" alt="Tastyz Bakery Hero Cake" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Why Tastyz ── -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-md-3 col-6">
+        <div class="p-3">
+          <div style="font-size:2.5rem;">🥚</div>
+          <h6 class="mt-2 fw-bold" style="color:var(--brown);">Fresh Ingredients</h6>
+          <small class="text-muted">Quality products every day</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3">
+          <div style="font-size:2.5rem;">🎨</div>
+          <h6 class="mt-2 fw-bold" style="color:var(--brown);">Custom Designs</h6>
+          <small class="text-muted">Your vision, our craft</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3">
+          <div style="font-size:2.5rem;">🚚</div>
+          <h6 class="mt-2 fw-bold" style="color:var(--brown);">Delivery Available</h6>
+          <small class="text-muted">Selected areas in Kampala</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3">
+          <div style="font-size:2.5rem;">🤖</div>
+          <h6 class="mt-2 fw-bold" style="color:var(--brown);">AI-Powered Support</h6>
+          <small class="text-muted">24/7 instant answers</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Featured Products ── -->
+{% if featured_with_images %}
+<section class="py-5" style="background:#fff;">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-heading">Our Specialties</h2>
+      <p class="section-sub">Freshly baked and ready for you</p>
+    </div>
+    <style>
+      .featured-product-card {
+        border-radius: 12px;
+        border: 1px solid #e0d5c7;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+      }
+      .featured-product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 20px rgba(92, 51, 23, 0.15);
+      }
+      .featured-image-container {
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #fff8f1, #fde8d0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .featured-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
+    <div class="row g-4">
+      {% for item in featured_with_images %}
+      <div class="col-lg-4 col-md-6 col-sm-12">
+        <div class="card featured-product-card h-100">
+          <div class="featured-image-container">
+            {% if item.home_image %}
+              <img src="{{ item.home_image }}" alt="{{ item.product.name }}" class="featured-image">
+            {% elif item.product.image %}
+              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="featured-image">
+            {% else %}
+              <div style="font-size: 3.5rem; text-align: center; width: 100%;">
+                {% if item.product.category == 'cake' %}🎂
+                {% elif item.product.category == 'cookies' %}🍪
+                {% else %}🥐{% endif %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="card-body text-center p-3 d-flex flex-column">
+            <span class="badge-cat">{{ item.product.get_category_display }}</span>
+            <h5 class="mt-2 mb-1" style="color:var(--brown); font-weight: 600;">{{ item.product.name }}</h5>
+            <p class="text-muted small mb-2 flex-grow-1">{{ item.product.description|truncatechars:60 }}</p>
+            <p class="price-tag" style="color:var(--brown); font-weight: 600;">{{ item.product.price_display }}</p>
+          </div>
+          <div class="text-center mb-3">
+            <a href="{% url 'place_order' %}" class="btn btn-bakery btn-sm">
+              <i class="bi bi-bag-heart"></i> Order Now
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-4">
+      <a href="{% url 'products' %}" class="btn btn-outline-bakery btn-lg">View Full Menu</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── AI Assistant CTA ── -->
+<section class="py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card text-center p-5" style="background:linear-gradient(135deg,#fff8f1,#fde8d0);">
+          <div style="font-size:3rem;">🤖</div>
+          <h3 class="mt-3 mb-2" style="color:var(--brown);">Ask Tastyz AI</h3>
+          <p class="text-muted mb-4">
+            Have a question about our products, pricing, or delivery? Our AI assistant knows everything about Tastyz Bakery — available 24/7.
+          </p>
+          <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'chat' %}" class="btn btn-bakery btn-lg">
+              <i class="bi bi-chat-dots me-2"></i>Chat with AI
+            </a>
+            <a href="{% url 'recommend' %}" class="btn btn-outline-bakery btn-lg">
+              <i class="bi bi-stars me-2"></i>Get Recommendations
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

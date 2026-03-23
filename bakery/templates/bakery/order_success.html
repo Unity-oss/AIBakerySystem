@@ -1,0 +1,171 @@
+{% extends "bakery/base.html" %}
+{% block title %}Order Confirmed — Tastyz Bakery{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+
+      <div style="font-size:5rem;">🎉</div>
+      <h1 class="section-heading mt-3">Order Received!</h1>
+      <p class="text-muted mb-4">Thank you, <strong>{{ order.customer_name }}</strong>!</p>
+
+      {% if order.ai_confirmation_message %}
+      <div class="card p-4 mb-4 text-start" style="background:linear-gradient(135deg,#fff8f1,#fde8d0);border-left:4px solid var(--brown);">
+        <div class="d-flex align-items-start gap-2">
+          <span style="font-size:1.5rem;">🤖</span>
+          <div>
+            <strong class="d-block mb-1" style="color:var(--brown);">Tastyz AI says:</strong>
+            <p class="mb-0">{{ order.ai_confirmation_message }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card p-4 text-start mb-4">
+        <h6 class="fw-bold mb-3" style="color:var(--brown);">Order Summary</h6>
+        <table class="table table-sm table-borderless mb-0">
+          <tr><th class="text-muted fw-normal">Order #</th><td>{{ order.pk }}</td></tr>
+          <tr><th class="text-muted fw-normal">Product</th><td>{{ order.product_name_snapshot }}</td></tr>
+          <tr><th class="text-muted fw-normal">Size</th><td>{{ order.size|default:"—" }}</td></tr>
+          <tr><th class="text-muted fw-normal">Delivery Date</th><td>{{ order.delivery_date }}</td></tr>
+          <tr><th class="text-muted fw-normal">Payment</th><td>{{ order.get_payment_method_display }}</td></tr>
+          <tr><th class="text-muted fw-normal">Status</th>
+            <td><span class="badge bg-warning text-dark">{{ order.get_status_display }}</span></td>
+          </tr>
+        </table>
+        {% if transaction_id %}<div data-transaction-id="{{ transaction_id }}" style="display:none;"></div>{% endif %}
+      </div>
+
+      <p class="text-muted small mb-4">Our team will call <strong>{{ order.customer_phone }}</strong> to confirm your order.</p>
+
+      {% if order.invoice %}
+      <div class="card p-3 text-start mb-4" style="border-left:4px solid #28a745">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong style="color:var(--brown)">Invoice {{ order.invoice.invoice_number }}</strong><br>
+            <small class="text-muted">Total: <strong>{{ order.invoice.total_amount|floatformat:0 }} UGX</strong> (incl. 5% VAT)</small>
+          </div>
+          <a href="{% url 'invoice_detail' pk=order.invoice.pk %}" class="btn btn-sm btn-outline-bakery">
+            <i class="bi bi-receipt me-1"></i>View Invoice
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-3 justify-content-center">
+        <a href="{% url 'home' %}" class="btn btn-outline-bakery">Back to Home</a>
+        <a href="{% url 'place_order' %}" class="btn btn-bakery">Place Another Order</a>
+      </div>
+
+      <!-- Redirect from Flutterwave Indicator -->
+      <div id="payment-redirect-info" class="mt-4 alert alert-info d-none">
+        <small>
+          <i class="bi bi-info-circle me-2"></i>
+          Redirected from payment gateway. Your payment is being verified...
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentRedirectInfo = document.getElementById('payment-redirect-info');
+  const statusBadges = document.querySelectorAll('.badge');
+  let paymentBadge = null;
+  
+  // Check if we're coming from Flutterwave (URL parameters or session)
+  const urlParams = new URLSearchParams(window.location.search);
+  const isFromFlutterwave = urlParams.get('from_payment') === '1' || sessionStorage.getItem('returnedFromPayment') === 'true';
+  
+  if (isFromFlutterwave) {
+    sessionStorage.removeItem('returnedFromPayment');
+    paymentRedirectInfo?.classList.remove('d-none');
+  }
+  
+  // Find payment status badge
+  statusBadges.forEach(badge => {
+    if (badge.textContent.toLowerCase().includes('processing') || 
+        badge.textContent.toLowerCase().includes('pending')) {
+      paymentBadge = badge;
+    }
+  });
+
+  // Get transaction_id from data attribute or session storage
+  let transactionId = document.querySelector('[data-transaction-id]')?.getAttribute('data-transaction-id');
+  
+  // If no transaction_id in DOM, try session storage and query params
+  if (!transactionId) {
+    transactionId = sessionStorage.getItem('paymentTransactionId') || urlParams.get('tx_id');
+  }
+  
+  if (transactionId) {
+    console.log('Polling payment status for:', transactionId);
+    sessionStorage.setItem('paymentTransactionId', transactionId);
+    
+    let pollAttempts = 0;
+    const maxAttempts = 150; // ~5 minutes at 2-second intervals
+    let paymentCompleted = false;
+    
+    function pollPaymentStatus() {
+      if (paymentCompleted) return;
+      
+      pollAttempts++;
+      
+      fetch(`/api/check-payment/${transactionId}/`)
+        .then(response => {
+          if (!response.ok) throw new Error('Payment check failed');
+          return response.json();
+        })
+        .then(data => {
+          console.log('Payment status:', data.status);
+          
+          // Update status badge if found
+          if (paymentBadge && data.status) {
+            const statusText = data.status;
+            paymentBadge.textContent = statusText;
+            
+            // Change badge color based on status
+            paymentBadge.classList.remove('bg-warning', 'bg-success', 'bg-danger');
+            if (statusText.toLowerCase().includes('completed')) {
+              paymentBadge.classList.add('bg-success');
+              paymentBadge.parentElement.style.color = 'white';
+              paymentCompleted = true;
+              paymentRedirectInfo?.classList.add('d-none');
+              console.log('Payment completed!');
+              return;
+            } else if (statusText.toLowerCase().includes('failed')) {
+              paymentBadge.classList.add('bg-danger');
+              paymentCompleted = true;
+              return;
+            } else {
+              paymentBadge.classList.add('bg-warning');
+            }
+          }
+          
+          // Continue polling if not completed and under attempt limit
+          if (!paymentCompleted && pollAttempts < maxAttempts) {
+            setTimeout(pollPaymentStatus, 2000);
+          } else if (pollAttempts >= maxAttempts) {
+            console.log('Polling timeout');
+            paymentRedirectInfo?.innerHTML = '<small><i class="bi bi-check-circle me-2 text-success"></i>Payment verification timeout. Your order has been confirmed.</small>';
+          }
+        })
+        .catch(err => {
+          console.log('Payment check error, retrying...', err);
+          // Continue polling on error
+          if (!paymentCompleted && pollAttempts < maxAttempts) {
+            setTimeout(pollPaymentStatus, 2000);
+          }
+        });
+    }
+    
+    // Start polling immediately
+    pollPaymentStatus();
+  }
+});
+</script>
+{% endblock %}
+

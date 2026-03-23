@@ -1,0 +1,29 @@
+# ============================================================
+# Ruff linting configuration for Tastyz Bakery AI System
+# ============================================================
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in default args
+]
+
+[lint.per-file-ignores]
+"*/migrations/*" = ["E501", "F401"]
+"manage.py" = ["F401"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

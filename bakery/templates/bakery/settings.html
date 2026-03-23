@@ -1,0 +1,741 @@
+{% extends "bakery/base.html" %}
+{% block title %}Settings — Tastyz Bakery AI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .settings-sidebar .nav-link {
+    color: var(--brown);
+    border-radius: 12px;
+    padding: .6rem 1rem;
+    font-weight: 500;
+    margin-bottom: .25rem;
+  }
+  .settings-sidebar .nav-link.active {
+    background: var(--brown);
+    color: #fff !important;
+  }
+  .settings-sidebar .nav-link:hover:not(.active) {
+    background: #f5e6d8;
+  }
+  .settings-card {
+    border-radius: 16px;
+    border: 1px solid #f0e8e0;
+    background: #fff;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    border-radius: 14px;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid #f0e8e0;
+    text-align: center;
+  }
+  .stat-card .stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--brown);
+  }
+  .stat-card .stat-label {
+    font-size: .8rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .range-container { position: relative; }
+  .range-container input[type=range] { width: 100%; }
+  .range-value {
+    font-weight: 700;
+    color: var(--brown);
+    font-size: 1.1rem;
+  }
+  .provider-card {
+    border: 2px solid #e8ddd3;
+    border-radius: 14px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .provider-card.selected {
+    border-color: var(--brown);
+    background: #fdf5ee;
+    box-shadow: 0 0 0 3px rgba(92,51,23,.15);
+  }
+  .provider-card:hover { border-color: var(--brown); }
+  .badge-configured {
+    font-size: .65rem;
+    background: #28a745;
+    color: #fff;
+    border-radius: 50px;
+    padding: .15rem .5rem;
+  }
+  .badge-not-configured {
+    font-size: .65rem;
+    background: #dc3545;
+    color: #fff;
+    border-radius: 50px;
+    padding: .15rem .5rem;
+  }
+  .trace-row { font-size: .85rem; }
+  .trace-row .badge { font-size: .7rem; }
+  .feedback-stars { font-size: 1.5rem; cursor: pointer; color: #ddd; }
+  .feedback-stars .bi-star-fill.active { color: #f9c784; }
+  .tab-pane { min-height: 300px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center mb-4">
+    <i class="bi bi-gear-wide-connected me-2" style="font-size:2rem;color:var(--brown)"></i>
+    <div>
+      <h1 class="section-heading mb-0" style="font-size:1.6rem;">Settings</h1>
+      <p class="text-muted mb-0" style="font-size:.85rem;">Configure AI models, view usage, and manage your bakery system</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 mb-3">
+      <div class="settings-sidebar">
+        <nav class="nav flex-column">
+          <a class="nav-link active" data-bs-toggle="tab" href="#tab-llm"><i class="bi bi-cpu me-2"></i>LLM Provider</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-params"><i class="bi bi-sliders me-2"></i>Model Parameters</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-tokens"><i class="bi bi-bar-chart me-2"></i>Token Usage</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-cache"><i class="bi bi-database me-2"></i>Cache</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-observability"><i class="bi bi-activity me-2"></i>Observability</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-finetune"><i class="bi bi-mortarboard me-2"></i>Fine-Tune</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-feedback"><i class="bi bi-star me-2"></i>Feedback</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-invoices"><i class="bi bi-receipt me-2"></i>Invoices</a>
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-payments"><i class="bi bi-credit-card me-2"></i>Payments</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="col-md-9">
+      <div class="tab-content">
+
+        <!-- ═══════════════ LLM Provider ═══════════════ -->
+        <div class="tab-pane fade show active" id="tab-llm">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-cpu me-2"></i>Select LLM Provider</h5>
+            <p class="text-muted mb-3">Choose which AI model powers your bakery assistant</p>
+
+            <div class="row g-3 mb-4" id="provider-cards">
+              {% for key, prov in providers.items %}
+              <div class="col-md-4">
+                <div class="provider-card {% if current_settings.provider == key %}selected{% endif %}" data-provider="{{ key }}">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="bi {{ prov.icon }} me-2" style="font-size:1.3rem;color:var(--brown)"></i>
+                    <strong>{{ prov.name }}</strong>
+                  </div>
+                  {% if prov.configured %}
+                    <span class="badge-configured">Configured</span>
+                  {% else %}
+                    <span class="badge-not-configured">Not Configured</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <h6 class="mb-2">Select Model</h6>
+            <select class="form-select mb-3" id="model-select">
+              {% for model_id, model_name in models %}
+              <option value="{{ model_id }}" {% if current_settings.model_name == model_id %}selected{% endif %}>{{ model_name }}</option>
+              {% endfor %}
+            </select>
+
+            <button class="btn btn-bakery" id="save-provider-btn">
+              <i class="bi bi-check-lg me-1"></i>Save Provider Settings
+            </button>
+            <span id="save-provider-status" class="ms-2 text-success" style="display:none">✓ Saved!</span>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Model Parameters ═══════════════ -->
+        <div class="tab-pane fade" id="tab-params">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-sliders me-2"></i>Model Parameters</h5>
+            <p class="text-muted mb-3">Fine-tune how the AI responds</p>
+
+            <div class="mb-4">
+              <label class="form-label d-flex justify-content-between">
+                <span>Temperature</span>
+                <span class="range-value" id="temp-value">{{ current_settings.temperature }}</span>
+              </label>
+              <input type="range" class="form-range" id="temperature" min="0" max="2" step="0.1" value="{{ current_settings.temperature }}">
+              <small class="text-muted">Lower = more focused. Higher = more creative.</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label d-flex justify-content-between">
+                <span>Top P</span>
+                <span class="range-value" id="topp-value">{{ current_settings.top_p }}</span>
+              </label>
+              <input type="range" class="form-range" id="top-p" min="0" max="1" step="0.05" value="{{ current_settings.top_p }}">
+              <small class="text-muted">Controls diversity via nucleus sampling.</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label d-flex justify-content-between">
+                <span>Frequency Penalty</span>
+                <span class="range-value" id="freq-value">{{ current_settings.frequency_penalty }}</span>
+              </label>
+              <input type="range" class="form-range" id="frequency-penalty" min="0" max="2" step="0.1" value="{{ current_settings.frequency_penalty }}">
+              <small class="text-muted">Penalises repeated tokens.</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label d-flex justify-content-between">
+                <span>Presence Penalty</span>
+                <span class="range-value" id="pres-value">{{ current_settings.presence_penalty }}</span>
+              </label>
+              <input type="range" class="form-range" id="presence-penalty" min="0" max="2" step="0.1" value="{{ current_settings.presence_penalty }}">
+              <small class="text-muted">Encourages new topics.</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label d-flex justify-content-between">
+                <span>Max Tokens</span>
+                <span class="range-value" id="maxtok-value">{{ current_settings.max_tokens }}</span>
+              </label>
+              <input type="range" class="form-range" id="max-tokens" min="128" max="4096" step="64" value="{{ current_settings.max_tokens }}">
+              <small class="text-muted">Maximum response length.</small>
+            </div>
+
+            <button class="btn btn-bakery" id="save-params-btn">
+              <i class="bi bi-check-lg me-1"></i>Save Parameters
+            </button>
+            <span id="save-params-status" class="ms-2 text-success" style="display:none">✓ Saved!</span>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Token Usage ═══════════════ -->
+        <div class="tab-pane fade" id="tab-tokens">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Token Usage & Costs</h5>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ token_stats.total_requests }}</div>
+                  <div class="stat-label">Total Requests</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ token_stats.total_input_tokens|default:"0" }}</div>
+                  <div class="stat-label">Input Tokens</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ token_stats.total_output_tokens|default:"0" }}</div>
+                  <div class="stat-label">Output Tokens</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">${{ token_stats.total_cost_usd|default:"0.00" }}</div>
+                  <div class="stat-label">Total Cost</div>
+                </div>
+              </div>
+            </div>
+
+            <h6>Recent Usage Logs</h6>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Time</th><th>Agent</th><th>Model</th><th>In</th><th>Out</th><th>Cost</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {% for log in usage_logs %}
+                  <tr class="trace-row">
+                    <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                    <td><span class="badge bg-secondary">{{ log.agent }}</span></td>
+                    <td>{{ log.model }}</td>
+                    <td>{{ log.input_tokens }}</td>
+                    <td>{{ log.output_tokens }}</td>
+                    <td>${{ log.cost_usd|floatformat:6 }}</td>
+                    <td>{% if log.success %}<span class="badge bg-success">OK</span>{% else %}<span class="badge bg-danger">Error</span>{% endif %}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="7" class="text-center text-muted py-3">No usage logs yet. Start chatting to see data here.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Cache ═══════════════ -->
+        <div class="tab-pane fade" id="tab-cache">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-database me-2"></i>Response Cache</h5>
+            <p class="text-muted mb-3">Cached responses reduce LLM calls and speed up answers</p>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ cache_stats.active_entries }}</div>
+                  <div class="stat-label">Active Entries</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ cache_stats.total_hits }}</div>
+                  <div class="stat-label">Total Hits</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ cache_stats.expired_entries }}</div>
+                  <div class="stat-label">Expired</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ cache_stats.total_entries }}</div>
+                  <div class="stat-label">Total Entries</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-bakery" id="clear-expired-btn">
+                <i class="bi bi-trash me-1"></i>Clear Expired
+              </button>
+              <button class="btn btn-outline-danger" id="clear-all-cache-btn">
+                <i class="bi bi-x-circle me-1"></i>Clear All Cache
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Observability ═══════════════ -->
+        <div class="tab-pane fade" id="tab-observability">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-activity me-2"></i>LLM Observability</h5>
+            <p class="text-muted mb-3">Monitor AI agent traces, latency, and errors</p>
+
+            <!-- Integration Status Badges -->
+            <div class="mb-4">
+              <h6>External Integrations</h6>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="badge {% if langsmith_configured %}bg-success{% else %}bg-secondary{% endif %} p-2">
+                  <i class="bi bi-broadcast me-1"></i>LangSmith {% if langsmith_configured %}Active{% else %}Not Configured{% endif %}
+                </span>
+                <span class="badge {% if pinecone_configured %}bg-success{% else %}bg-secondary{% endif %} p-2">
+                  <i class="bi bi-pin-map me-1"></i>Pinecone {% if pinecone_configured %}Active{% else %}Using ChromaDB{% endif %}
+                </span>
+                <span class="badge {% if calendar_configured %}bg-success{% else %}bg-secondary{% endif %} p-2">
+                  <i class="bi bi-calendar-event me-1"></i>Google Calendar {% if calendar_configured %}Active{% else %}Not Configured{% endif %}
+                </span>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ obs_stats.total_traces }}</div>
+                  <div class="stat-label">Total Traces</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ obs_stats.avg_latency_ms }}ms</div>
+                  <div class="stat-label">Avg Latency</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ obs_stats.success_rate }}%</div>
+                  <div class="stat-label">Success Rate</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ obs_stats.error_count }}</div>
+                  <div class="stat-label">Errors</div>
+                </div>
+              </div>
+            </div>
+
+            <h6>Recent Traces</h6>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Time</th><th>Agent</th><th>Step</th><th>Model</th><th>Latency</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {% for trace in recent_traces %}
+                  <tr class="trace-row">
+                    <td>{{ trace.timestamp|truncatechars:19 }}</td>
+                    <td><span class="badge bg-secondary">{{ trace.agent }}</span></td>
+                    <td>{{ trace.step }}</td>
+                    <td>{{ trace.model }}</td>
+                    <td>{{ trace.latency_ms }}ms</td>
+                    <td>{% if trace.success %}<span class="badge bg-success">OK</span>{% else %}<span class="badge bg-danger">Error</span>{% endif %}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="6" class="text-center text-muted py-3">No traces yet. Traces are recorded when you chat with the AI.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Fine-Tune ═══════════════ -->
+        <div class="tab-pane fade" id="tab-finetune">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-mortarboard me-2"></i>Fine-Tune Model</h5>
+            <p class="text-muted mb-3">Train a custom model using high-quality feedback data</p>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value">{{ finetune_stats.available_training_data }}</div>
+                  <div class="stat-label">Training Examples (4★+)</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value">{{ finetune_stats.succeeded }}</div>
+                  <div class="stat-label">Completed Jobs</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value">{{ finetune_stats.running }}</div>
+                  <div class="stat-label">Running Jobs</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-info" style="border-radius:12px">
+              <i class="bi bi-info-circle me-1"></i>
+              Fine-tuning requires at least <strong>10 high-quality examples</strong> (4-5★ rated feedback).
+              Current: <strong>{{ finetune_stats.available_training_data }}</strong> examples.
+            </div>
+
+            <div class="d-flex gap-2 mb-4">
+              <button class="btn btn-bakery" id="start-finetune-btn" {% if finetune_stats.available_training_data < 10 %}disabled{% endif %}>
+                <i class="bi bi-rocket-takeoff me-1"></i>Start Fine-Tune Job
+              </button>
+              <button class="btn btn-outline-bakery" id="export-training-btn">
+                <i class="bi bi-download me-1"></i>Export Training Data
+              </button>
+            </div>
+
+            {% if finetune_jobs %}
+            <h6>Fine-Tune Jobs</h6>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Job ID</th><th>Base Model</th><th>Examples</th><th>Status</th><th>Created</th></tr>
+                </thead>
+                <tbody>
+                  {% for job in finetune_jobs %}
+                  <tr class="trace-row">
+                    <td><code>{{ job.openai_job_id|truncatechars:20 }}</code></td>
+                    <td>{{ job.base_model }}</td>
+                    <td>{{ job.num_examples }}</td>
+                    <td>
+                      {% if job.status == "succeeded" %}<span class="badge bg-success">Succeeded</span>
+                      {% elif job.status == "running" %}<span class="badge bg-primary">Running</span>
+                      {% elif job.status == "failed" %}<span class="badge bg-danger">Failed</span>
+                      {% else %}<span class="badge bg-secondary">{{ job.status }}</span>{% endif %}
+                    </td>
+                    <td>{{ job.created_at|date:"M d, H:i" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- ═══════════════ Feedback ═══════════════ -->
+        <div class="tab-pane fade" id="tab-feedback">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-star me-2"></i>Agent Feedback & Learning</h5>
+            <p class="text-muted mb-3">User feedback teaches the AI to improve over time</p>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ feedback_stats.total_feedback }}</div>
+                  <div class="stat-label">Total Feedback</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value">{{ feedback_stats.avg_rating }}★</div>
+                  <div class="stat-label">Avg Rating</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value text-success">{{ feedback_stats.positive_count }}</div>
+                  <div class="stat-label">Positive (4-5★)</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card">
+                  <div class="stat-value text-danger">{{ feedback_stats.negative_count }}</div>
+                  <div class="stat-label">Negative (1-2★)</div>
+                </div>
+              </div>
+            </div>
+
+            {% if recent_feedback %}
+            <h6>Recent Feedback</h6>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Date</th><th>Agent</th><th>Rating</th><th>Query</th><th>Comment</th></tr>
+                </thead>
+                <tbody>
+                  {% for fb in recent_feedback %}
+                  <tr class="trace-row">
+                    <td>{{ fb.created_at|date:"M d, H:i" }}</td>
+                    <td><span class="badge bg-secondary">{{ fb.agent }}</span></td>
+                    <td>{{ fb.rating }}★</td>
+                    <td>{{ fb.query|truncatechars:50 }}</td>
+                    <td>{{ fb.comment|truncatechars:40 }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-3">No feedback yet. Users can rate AI responses in the chat.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- ═══════════════ Invoices ═══════════════ -->
+        <div class="tab-pane fade" id="tab-invoices">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-receipt me-2"></i>Invoices</h5>
+            <p class="text-muted mb-3">Auto-generated invoices for orders</p>
+
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Invoice #</th><th>Customer</th><th>Product</th><th>Subtotal</th><th>Tax (5%)</th><th>Total</th><th>Status</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {% for inv in invoices %}
+                  <tr class="trace-row">
+                    <td><strong>{{ inv.invoice_number }}</strong></td>
+                    <td>{{ inv.order.customer_name }}</td>
+                    <td>{{ inv.order.product_name_snapshot }}</td>
+                    <td>{{ inv.amount|floatformat:0 }} UGX</td>
+                    <td>{{ inv.tax_amount|floatformat:0 }} UGX</td>
+                    <td><strong>{{ inv.total_amount|floatformat:0 }} UGX</strong></td>
+                    <td>
+                      {% if inv.status == "paid" %}<span class="badge bg-success">Paid</span>
+                      {% elif inv.status == "sent" %}<span class="badge bg-primary">Sent</span>
+                      {% elif inv.status == "draft" %}<span class="badge bg-secondary">Draft</span>
+                      {% else %}<span class="badge bg-danger">{{ inv.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td>{{ inv.created_at|date:"M d, Y" }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="8" class="text-center text-muted py-3">No invoices yet. Invoices are auto-generated when orders are placed.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ Payments ═══════════════ -->
+        <div class="tab-pane fade" id="tab-payments">
+          <div class="settings-card">
+            <h5 class="mb-3"><i class="bi bi-credit-card me-2"></i>Payments</h5>
+            <p class="text-muted mb-3">Payment records across all gateways</p>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value">{{ payment_stats.total }}</div>
+                  <div class="stat-label">Total Payments</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value text-success">{{ payment_stats.completed }}</div>
+                  <div class="stat-label">Completed</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="stat-card">
+                  <div class="stat-value">{{ payment_stats.pending }}</div>
+                  <div class="stat-label">Pending</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Txn ID</th><th>Invoice</th><th>Gateway</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {% for pay in payments %}
+                  <tr class="trace-row">
+                    <td><code>{{ pay.transaction_id|truncatechars:20 }}</code></td>
+                    <td>{{ pay.invoice.invoice_number }}</td>
+                    <td>{{ pay.get_gateway_display }}</td>
+                    <td>{{ pay.amount|floatformat:0 }} UGX</td>
+                    <td>
+                      {% if pay.status == "completed" %}<span class="badge bg-success">Completed</span>
+                      {% elif pay.status == "processing" %}<span class="badge bg-primary">Processing</span>
+                      {% elif pay.status == "pending" %}<span class="badge bg-warning text-dark">Pending</span>
+                      {% else %}<span class="badge bg-danger">{{ pay.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td>{{ pay.created_at|date:"M d, H:i" }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="6" class="text-center text-muted py-3">No payments recorded yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end tab-content -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+// ── Range sliders live update ──
+document.querySelectorAll('input[type=range]').forEach(slider => {
+  const valueEl = document.getElementById(slider.id.replace(/-/g, '') + '-value') ||
+                  slider.parentElement.querySelector('.range-value');
+  if (!valueEl) {
+    // try matching by mapping
+    const map = {
+      'temperature': 'temp-value',
+      'top-p': 'topp-value',
+      'frequency-penalty': 'freq-value',
+      'presence-penalty': 'pres-value',
+      'max-tokens': 'maxtok-value',
+    };
+    const el = document.getElementById(map[slider.id]);
+    if (el) slider.addEventListener('input', () => el.textContent = slider.value);
+  } else {
+    slider.addEventListener('input', () => valueEl.textContent = slider.value);
+  }
+});
+// Fix: explicit bindings for all sliders
+['temperature','top-p','frequency-penalty','presence-penalty','max-tokens'].forEach(id => {
+  const slider = document.getElementById(id);
+  const map = {'temperature':'temp-value','top-p':'topp-value','frequency-penalty':'freq-value','presence-penalty':'pres-value','max-tokens':'maxtok-value'};
+  const valEl = document.getElementById(map[id]);
+  if (slider && valEl) slider.addEventListener('input', () => valEl.textContent = slider.value);
+});
+
+// ── Provider card selection ──
+document.querySelectorAll('.provider-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    // Update model dropdown
+    fetch(`/api/settings/models/?provider=${card.dataset.provider}`, {
+      headers: {'X-CSRFToken': csrfToken}
+    })
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('model-select');
+      sel.innerHTML = '';
+      data.models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m[0];
+        opt.textContent = m[1];
+        sel.appendChild(opt);
+      });
+    });
+  });
+});
+
+// ── Save provider ──
+document.getElementById('save-provider-btn').addEventListener('click', () => {
+  const provider = document.querySelector('.provider-card.selected')?.dataset.provider || 'openai';
+  const model = document.getElementById('model-select').value;
+  fetch('/api/settings/save/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+    body: JSON.stringify({provider, model_name: model}),
+  })
+  .then(r => r.json())
+  .then(() => {
+    const st = document.getElementById('save-provider-status');
+    st.style.display = 'inline';
+    setTimeout(() => st.style.display = 'none', 2000);
+  });
+});
+
+// ── Save parameters ──
+document.getElementById('save-params-btn').addEventListener('click', () => {
+  fetch('/api/settings/save/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+    body: JSON.stringify({
+      temperature: parseFloat(document.getElementById('temperature').value),
+      top_p: parseFloat(document.getElementById('top-p').value),
+      frequency_penalty: parseFloat(document.getElementById('frequency-penalty').value),
+      presence_penalty: parseFloat(document.getElementById('presence-penalty').value),
+      max_tokens: parseInt(document.getElementById('max-tokens').value),
+    }),
+  })
+  .then(r => r.json())
+  .then(() => {
+    const st = document.getElementById('save-params-status');
+    st.style.display = 'inline';
+    setTimeout(() => st.style.display = 'none', 2000);
+  });
+});
+
+// ── Cache actions ──
+document.getElementById('clear-expired-btn')?.addEventListener('click', () => {
+  fetch('/api/settings/cache/clear-expired/', {method: 'POST', headers: {'X-CSRFToken': csrfToken}})
+  .then(r => r.json())
+  .then(d => alert(`Cleared ${d.deleted} expired entries`));
+});
+document.getElementById('clear-all-cache-btn')?.addEventListener('click', () => {
+  if (!confirm('Clear ALL cached responses?')) return;
+  fetch('/api/settings/cache/clear-all/', {method: 'POST', headers: {'X-CSRFToken': csrfToken}})
+  .then(r => r.json())
+  .then(d => alert(`Cleared ${d.deleted} cache entries`));
+});
+
+// ── Fine-tune actions ──
+document.getElementById('start-finetune-btn')?.addEventListener('click', () => {
+  if (!confirm('Start a fine-tuning job? This uses OpenAI credits.')) return;
+  fetch('/api/settings/finetune/start/', {method: 'POST', headers: {'X-CSRFToken': csrfToken}})
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) alert('Error: ' + d.error);
+    else alert('Fine-tune job started: ' + (d.job_id || 'submitted'));
+  });
+});
+document.getElementById('export-training-btn')?.addEventListener('click', () => {
+  fetch('/api/settings/finetune/export/', {method: 'POST', headers: {'X-CSRFToken': csrfToken}})
+  .then(r => r.json())
+  .then(d => alert(`Exported ${d.count} examples to ${d.path}`));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "bakery/base.html" %}
+{% block title %}Product Recommendations — Tastyz Bakery{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <div class="text-center mb-4">
+        <div style="font-size:3rem;">✨</div>
+        <h1 class="section-heading">Get Recommendations</h1>
+        <p class="text-muted">Tell us what you need and our AI will suggest the perfect product.</p>
+      </div>
+
+      <!-- Suggestion chips -->
+      <div class="mb-3 d-flex flex-wrap gap-2 justify-content-center">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill chip-btn" data-q="Cake for a birthday party">Birthday party cake</button>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill chip-btn" data-q="Something sweet for kids">For kids</button>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill chip-btn" data-q="Wedding cake ideas">Wedding cake</button>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill chip-btn" data-q="Cake under 80,000 UGX">Under 80k budget</button>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill chip-btn" data-q="Corporate event desserts">Corporate event</button>
+      </div>
+
+      <!-- Form -->
+      <div class="card p-4 mb-4">
+        <form method="post">
+          {% csrf_token %}
+          <label class="form-label fw-semibold">{{ form.customer_request.label }}</label>
+          {{ form.customer_request }}
+          {% if form.customer_request.errors %}
+            <div class="text-danger small mt-1">{{ form.customer_request.errors.0 }}</div>
+          {% endif %}
+          <button type="submit" class="btn btn-bakery mt-3 w-100">
+            <i class="bi bi-stars me-2"></i>Get AI Recommendation
+          </button>
+        </form>
+      </div>
+
+      <!-- Result -->
+      {% if recommendation %}
+      <div class="card p-4" style="background:linear-gradient(135deg,#fff8f1,#fde8d0);border-left:4px solid var(--brown);">
+        <div class="d-flex align-items-start gap-3">
+          <span style="font-size:2rem;min-width:2.5rem;">🤖</span>
+          <div>
+            <strong class="d-block mb-2" style="color:var(--brown);">Tastyz AI Recommends:</strong>
+            <p class="mb-3" style="white-space:pre-line;">{{ recommendation }}</p>
+            <a href="{% url 'place_order' %}" class="btn btn-bakery">
+              <i class="bi bi-bag-heart me-1"></i>Place an Order
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const input = document.querySelector('[name="customer_request"]');
+  document.querySelectorAll('.chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      input.value = btn.dataset.q;
+      input.focus();
+    });
+  });
+</script>
+{% endblock %}
